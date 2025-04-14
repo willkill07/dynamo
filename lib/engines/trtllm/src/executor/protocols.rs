@@ -129,7 +129,7 @@ pub struct Request {
     // // TODO: Add prompt_tuning_config: PromptTuningConfig
     // // TODO: Add lora_config: LoraConfig
     // // TODO: Add lookahead_config: LookaheadDecodingConfig
-    // pub kv_cache_retention_config: KvCacheRetentionConfig,
+    pub kv_cache_retention_config: KvCacheRetentionConfig,
     // pub logits_post_processor_name: String,
     // pub encoder_input_token_ids: Vec<u32>,
     // pub client_id: Option<u64>, // google.protobuf.UInt64Value
@@ -149,9 +149,22 @@ pub struct Request {
 impl Request {
     pub fn new(input_token_ids: Vec<u32>, max_tokens: u32) -> Self {
         RequestBuilder::default()
-            .input_token_ids(input_token_ids)
+            .input_token_ids(input_token_ids.clone())
             .max_tokens(max_tokens)
             .streaming(true)
+            .kv_cache_retention_config(KvCacheRetentionConfig {
+                token_range_retention_configs: input_token_ids
+                    .iter()
+                    .map(|id| TokenRangeRetentionConfig {
+                        token_start: *id,
+                        token_end: None,
+                        priority: 0,
+                        duration_ms: Some(5_000),
+                    })
+                    .collect(),
+                decode_retention_priority: 0,
+                decode_duration_ms: None,
+            })
             .build()
             .unwrap()
     }
@@ -161,10 +174,23 @@ impl Request {
 impl From<dynamo_llm::protocols::common::llm_backend::BackendInput> for Request {
     fn from(input: dynamo_llm::protocols::common::llm_backend::BackendInput) -> Self {
         let request = RequestBuilder::default()
-            .input_token_ids(input.token_ids)
+            .input_token_ids(input.token_ids.clone())
             .max_tokens(input.stop_conditions.max_tokens.unwrap_or(16))
             .streaming(true)
             .end_id(input.eos_token_ids.last().cloned())
+            .kv_cache_retention_config(KvCacheRetentionConfig {
+                token_range_retention_configs: input.token_ids
+                    .iter()
+                    .map(|id| TokenRangeRetentionConfig {
+                        token_start: *id,
+                        token_end: None,
+                        priority: 0,
+                        duration_ms: Some(5_000),
+                    })
+                    .collect(),
+                decode_retention_priority: 0,
+                decode_duration_ms: None,
+            })
             .build()
             .unwrap();
 

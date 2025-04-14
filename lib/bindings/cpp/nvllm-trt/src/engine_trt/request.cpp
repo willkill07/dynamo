@@ -256,7 +256,7 @@ struct Request
     // // TODO: Add PromptTuningConfig prompt_tuning_config;
     // // TODO: Add LoraConfig lora_config;
     // // TODO: Add LookaheadDecodingConfig lookahead_config;
-    // KvCacheRetentionConfig kv_cache_retention_config;
+    KvCacheRetentionConfig kv_cache_retention_config;
     // std::string logits_post_processor_name;
     // std::vector<uint32_t> encoder_input_token_ids;
     // std::optional<uint64_t> client_id;
@@ -284,7 +284,7 @@ inline void to_json(json& j, const Request& r)
         //  {"position_ids", r.position_ids},
         //  {"bad_words", r.bad_words},
         //  {"stop_words", r.stop_words},
-        //  {"kv_cache_retention_config", r.kv_cache_retention_config},
+        {"kv_cache_retention_config", r.kv_cache_retention_config},
         //  {"logits_post_processor_name", r.logits_post_processor_name},
         //  {"encoder_input_token_ids", r.encoder_input_token_ids},
         //  {"return_all_generated_tokens", r.return_all_generated_tokens},
@@ -333,7 +333,7 @@ inline void from_json(const json& j, Request& r)
     // j.at("position_ids").get_to(r.position_ids);
     // j.at("bad_words").get_to(r.bad_words);
     // j.at("stop_words").get_to(r.stop_words);
-    // j.at("kv_cache_retention_config").get_to(r.kv_cache_retention_config);
+    j.at("kv_cache_retention_config").get_to(r.kv_cache_retention_config);
     // j.at("logits_post_processor_name").get_to(r.logits_post_processor_name);
     // j.at("encoder_input_token_ids").get_to(r.encoder_input_token_ids);
     // j.at("return_all_generated_tokens").get_to(r.return_all_generated_tokens);
