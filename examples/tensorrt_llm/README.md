@@ -152,3 +152,39 @@ Remaining tasks:
 - [ ] Merge the code base with llm example to reduce the code duplication.
 - [ ] Use processor from dynamo-llm framework.
 - [ ] Enable NIXL integration with TensorRT-LLM once available. Currently, TensorRT-LLM uses UCX to transfer KV cache.
+
+## KV Cache Retention Configuration
+
+TensorRT-LLM supports retaining KV cache entries for improved performance with repeated or similar prompt sequences. This feature helps control how long KV cache entries are kept in memory and their priority for eviction.
+
+### 1. Via YAML Configuration File
+
+In your engine configuration YAML file, add a `kv_cache_retention_config` section:
+
+```yaml
+kv_cache_retention_config:
+  priority: 50        # Numeric priority value (0-100, higher values = higher priority)
+  duration_ms: 30000  # Duration in milliseconds to retain KV cache
+```
+
+### 2. Via Command Line Parameters
+
+You can override KV cache retention settings via command line arguments:
+
+```bash
+# Set KV cache retention priority (0-100)
+--local-kv-retention-priority 50
+
+# Set KV cache retention duration in milliseconds
+--local-kv-retention-duration 60000
+```
+
+### How It Works
+
+The retention configuration works as follows:
+
+1. The token IDs from the input request are automatically used as the keys for retention
+2. The priority value (0-100) controls how likely cached entries are to be kept during memory pressure (higher values = higher priority)
+3. The duration specifies how long (in milliseconds) the KV cache entries should be retained
+
+This feature is especially useful for applications with predictable patterns of requests or where multiple users submit similar prompts.

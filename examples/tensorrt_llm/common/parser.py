@@ -22,6 +22,7 @@ from typing import Any, Dict, Tuple
 import yaml
 from tensorrt_llm._torch.pyexecutor.config import PyTorchConfig
 from tensorrt_llm.llmapi import KvCacheConfig
+from tensorrt_llm.llmapi.llm_utils import KvCacheRetentionConfig
 
 
 @dataclass
@@ -32,12 +33,14 @@ class LLMAPIConfig:
         model_path: str | None = None,
         pytorch_backend_config: PyTorchConfig | None = None,
         kv_cache_config: KvCacheConfig | None = None,
+        kv_cache_retention_config: KvCacheRetentionConfig | None = None,
         **kwargs,
     ):
         self.model_name = model_name
         self.model_path = model_path
         self.pytorch_backend_config = pytorch_backend_config
         self.kv_cache_config = kv_cache_config
+        self.kv_cache_retention = kv_cache_retention_config
         self.extra_args = kwargs
 
         # Hardcoded to skip tokenizer init for now.
@@ -50,7 +53,7 @@ class LLMAPIConfig:
     def to_dict(self) -> Dict[str, Any]:
         data = {
             "pytorch_backend_config": self.pytorch_backend_config,
-            "kv_cache_config": self.kv_cache_config,
+            "kv_cache_config": self.kv_cache_config
         }
         if self.extra_args:
             data.update(self.extra_args)
@@ -66,6 +69,17 @@ class LLMAPIConfig:
         if "kv_cache_config" in other_config:
             self.kv_cache_config = KvCacheConfig(**other_config["kv_cache_config"])
             self.extra_args.pop("kv_cache_config", None)
+            
+        if "kv_cache_retention_config" in other_config:
+            config = other_config["kv_cache_retention_config"]
+            # Create a KvCacheRetentionConfig with just priority and duration
+            # Note: token_ids will be provided later during generation
+            self.kv_cache_retention = KvCacheRetentionConfig(
+                token_range_retention_configs=[],
+                decode_retention_priority=config.get("priority", 0),
+                decode_duration_ms=datetime.timedelta(milliseconds=config.get("duration_ms", 30000))
+            )
+            self.extra_args.pop("kv_cache_retention_config", None)
 
 
 def _get_llm_args(engine_config):
@@ -156,6 +170,18 @@ def parse_tensorrt_llm_args(
         "--remote-prefill",
         action="store_true",
         help="Use remote prefill workers for generation server in Disaggregated mode.",
+    )
+    parser.add_argument(
+        "--local-kv-retention-priority",
+        type=int,
+        help="Priority value for KV cache retention (0-100, higher values = higher priority)",
+        default=None,
+    )
+    parser.add_argument(
+        "--local-kv-retention-duration",
+        type=int,
+        help="Duration in seconds for KV cache retention",
+        default=None,
     )
 
     args = parser.parse_args(config_args)

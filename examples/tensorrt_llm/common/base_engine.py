@@ -36,6 +36,7 @@ from common.protocol import (
 from common.utils import ManagedThread, ServerType
 from tensorrt_llm.executor import CppExecutorError
 from tensorrt_llm.llmapi import LLM, SamplingParams
+from tensorrt_llm.llmapi.llm_utils import KvCacheRetentionConfig
 from tensorrt_llm.llmapi.disagg_utils import (
     CtxGenServerConfig,
     parse_disagg_config_file,
@@ -484,11 +485,33 @@ class BaseTensorrtLLMEngine:
                 f"Worker inputs: {worker_inputs}, disaggregated params: {disaggregated_params}"
             )
 
+            # Create KV cache retention config using input token IDs and global config
+            kv_cache_retention_config = None
+            if self._engine_config.kv_cache_retention:
+                # Create a new KvCacheRetentionConfig with current token IDs but using the
+                # priority and duration from the global config
+                base_config = self._engine_config.kv_cache_retention
+                priority = base_config.decode_retention_priority
+                duration = datetime.timedelta(milliseconds=base_config.decode_duration_ms)
+                groups = []
+                for x in sorted(worker_inputs):
+                    if not groups or x != groups[-1][-1] + 1:
+                        groups.append([])
+                    groups[-1].append(x)
+                range_configs = [trtllm.KvCacheRetentionConfig.TokenRangeRetentionConfig(g[0], None if len(g) == 1 else g[-1], priority, duration) for x in groups]
+                kv_cache_retention_config = KvCacheRetentionConfig(
+                    range_configs,
+                    priority,
+                    duration
+                )
+                logger.debug(f"Using KV cache retention config with priority: {priority}, duration: {duration}")
+
             sampling_params = get_sampling_params(request.sampling_params)
             async for response in self._llm_engine.generate_async(
                 inputs=worker_inputs,
                 sampling_params=sampling_params,
                 disaggregated_params=disaggregated_params,
+                kv_cache_retention_config=kv_cache_retention_config,
                 streaming=False
                 if self._server_type == ServerType.CTX
                 else request.streaming,
