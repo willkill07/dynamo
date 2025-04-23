@@ -487,7 +487,7 @@ class BaseTensorrtLLMEngine:
 
             # Create KV cache retention config using input token IDs and global config
             kv_cache_retention_config = None
-            if self._engine_config.kv_cache_retention:
+            if request.agent_id is not None and self._engine_config.kv_cache_retention:
                 # Create a new KvCacheRetentionConfig with current token IDs but using the
                 # priority and duration from the global config
                 base_config = self._engine_config.kv_cache_retention

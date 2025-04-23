@@ -332,6 +332,7 @@ class ChatProcessor(BaseChatProcessor):
             disaggregated_params=request.disaggregated_params,
             # NOTE: dont include the first token (e.g. <s>) when searching for a prefix match. We might want to exclude all special tokens at some point.
             tokens=Tokens(tokens=self.tokenizer.encode(prompt)[1:]),
+            agent_id=getattr(request, "agent_id", None)
         )
 
     async def postprocess(
@@ -436,6 +437,7 @@ class CompletionsProcessor:
             sampling_params=asdict(sampling_params),
             disaggregated_params=request.disaggregated_params,
             tokens=Tokens(tokens=self.tokenizer.encode(prompt)[1:]),
+            agent_id=getattr(request, "agent_id", None),
         )
 
     async def postprocess(

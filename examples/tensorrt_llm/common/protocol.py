@@ -38,6 +38,7 @@ from tensorrt_llm.serve.openai_protocol import (
 class DynamoTRTLLMCompletionRequest(CompletionRequest):
     id: str = Field(default_factory=lambda: f"cmpl-{str(uuid.uuid4().hex)}")
     max_completion_tokens: Optional[int] = None
+    agent_id: Optional[str] = None
 
 
 class DynamoTRTLLMChatCompletionRequest(ChatCompletionRequest):
@@ -45,6 +46,7 @@ class DynamoTRTLLMChatCompletionRequest(ChatCompletionRequest):
     max_completion_tokens: Optional[int] = None
     max_tokens: Optional[int] = None
     disaggregated_params: Optional[DisaggregatedParams] = Field(default=None)
+    agent_id: Optional[str] = Field(default=None)
 
 
 class Tokens(BaseModel):
@@ -66,6 +68,7 @@ class TRTLLMWorkerRequest(BaseModel):
     conversation: Optional[List[ConversationMessage]] = Field(default=None)
     tokens: Optional[Tokens] = Field(default=None)
     disaggregated_params: Optional[DisaggregatedParams] = Field(default=None)
+    agent_id: Optional[str] = Field(default=None)
 
 
 @dataclass
